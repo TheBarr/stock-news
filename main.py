@@ -33,8 +33,8 @@ if percentage >= 5 or percentage <= -5:
     news_parameters = {
         "apiKey": os.getenv("NEWS_KEY"),
         "q": COMPANY_NAME,
-        "searchIn": "title", "description"
-                             "from": date_day_before_yesterday,
+        "searchIn": "title,description",
+        "from": date_day_before_yesterday,
         "to": date_yesterday,
         "sortBy": "relevancy",
         "pageSize": 3,
