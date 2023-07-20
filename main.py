@@ -1,5 +1,6 @@
 import requests
 import os
+import datetime as dt
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -7,20 +8,25 @@ load_dotenv()
 STOCK = "TSLA"
 COMPANY_NAME = "Tesla Inc"
 
-## STEP 1: Use https://www.alphavantage.co
-# When STOCK price increase/decreases by 5% between yesterday and the day before yesterday then print("Get News").
 stock_parameters = {
     "function": "TIME_SERIES_DAILY",
     "symbol": STOCK,
     "apikey": os.getenv("ALPHA_VANTAGE_KEY"),
 
 }
+date_now = dt.datetime.now().date()
+date_yesterday = date_now - dt.timedelta(days=2)
+date_day_before_yesterday = date_now - dt.timedelta(days=10)
 
 response = requests.get("https://www.alphavantage.co/query", params=stock_parameters)
 response.raise_for_status()
-stock_data = response.json()
-print(stock_data)
+stock_data_yesterday = float(response.json()['Time Series (Daily)'][str(date_yesterday)]['4. close'])
+stock_data_day_before_yesterday = float(
+    response.json()['Time Series (Daily)'][str(date_day_before_yesterday)]['4. close'])
 
+percentage = round(100 - (stock_data_day_before_yesterday / stock_data_yesterday) * 100, 2)
+if percentage >= 5 or percentage <= -5:
+    print("Get News")
 
 ## STEP 2: Use https://newsapi.org
 # Instead of printing ("Get News"), actually get the first 3 news pieces for the COMPANY_NAME. 
