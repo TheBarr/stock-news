@@ -28,7 +28,7 @@ stock_data_day_before_yesterday = float(
 
 percentage = round(100 - (stock_data_day_before_yesterday / stock_data_yesterday) * 100, 2)
 
-if percentage >= 5 or percentage <= -5:
+if percentage >= 0.1 or percentage <= -0.1:
     news_parameters = {
         "apiKey": os.getenv("NEWS_KEY"),
         "q": COMPANY_NAME,
@@ -44,9 +44,9 @@ if percentage >= 5 or percentage <= -5:
 
     articles = ""
     for i in range(3):
-        articles += (news_response.json()["articles"][i]["title"])
+        articles += "Title: " + (news_response.json()["articles"][i]["title"])
         articles += ("\n")
-        articles += (news_response.json()["articles"][i]["description"])
+        articles += "Description: " + (news_response.json()["articles"][i]["description"])
         articles += ("\n\n")
 
     if percentage >= 0.1:
