@@ -1,7 +1,9 @@
 import requests
 import os
 import datetime as dt
+import smtplib
 from dotenv import load_dotenv
+from email.message import EmailMessage
 
 load_dotenv()
 
@@ -15,33 +17,55 @@ stock_parameters = {
 
 }
 date_now = dt.datetime.now().date()
-date_yesterday = date_now - dt.timedelta(days=2)
-date_day_before_yesterday = date_now - dt.timedelta(days=10)
+date_yesterday = date_now - dt.timedelta(days=1)
+date_day_before_yesterday = date_now - dt.timedelta(days=2)
 
-response = requests.get("https://www.alphavantage.co/query", params=stock_parameters)
-response.raise_for_status()
-stock_data_yesterday = float(response.json()['Time Series (Daily)'][str(date_yesterday)]['4. close'])
+stock_response = requests.get("https://www.alphavantage.co/query", params=stock_parameters)
+stock_response.raise_for_status()
+stock_data_yesterday = float(stock_response.json()['Time Series (Daily)'][str(date_yesterday)]['4. close'])
 stock_data_day_before_yesterday = float(
-    response.json()['Time Series (Daily)'][str(date_day_before_yesterday)]['4. close'])
+    stock_response.json()['Time Series (Daily)'][str(date_day_before_yesterday)]['4. close'])
 
 percentage = round(100 - (stock_data_day_before_yesterday / stock_data_yesterday) * 100, 2)
+
 if percentage >= 5 or percentage <= -5:
-    print("Get News")
+    news_parameters = {
+        "apiKey": os.getenv("NEWS_KEY"),
+        "q": COMPANY_NAME,
+        "searchIn": "title","description"
+        "from": date_day_before_yesterday,
+        "to": date_yesterday,
+        "sortBy": "relevancy",
+        "pageSize":3,
+    }
 
-## STEP 2: Use https://newsapi.org
-# Instead of printing ("Get News"), actually get the first 3 news pieces for the COMPANY_NAME. 
+    news_response = requests.get("https://newsapi.org/v2/everything", params=news_parameters)
+    news_response.raise_for_status()
 
-## STEP 3: Use https://www.twilio.com
-# Send a seperate message with the percentage change and each article's title and description to your phone number. 
+    articles = ""
+    for i in range(3):
+        articles += (news_response.json()["articles"][i]["title"])
+        articles += ("\n")
+        articles += (news_response.json()["articles"][i]["description"])
+        articles += ("\n\n")
 
+    if percentage >= 0.1:
+        title = f"{COMPANY_NAME} Stock And News - {STOCK} 🔺{percentage}%"
+    elif percentage <= -0.1:
+        title = f"{COMPANY_NAME} Stock And News - {STOCK} 🔻{percentage}%"
 
-# Optional: Format the SMS message like this:
-"""
-TSLA: 🔺2%
-Headline: Were Hedge Funds Right About Piling Into Tesla Inc. (TSLA)?. 
-Brief: We at Insider Monkey have gone over 821 13F filings that hedge funds and prominent investors are required to file by the SEC The 13F filings show the funds' and investors' portfolio positions as of March 31st, near the height of the coronavirus market crash.
-or
-"TSLA: 🔻5%
-Headline: Were Hedge Funds Right About Piling Into Tesla Inc. (TSLA)?. 
-Brief: We at Insider Monkey have gone over 821 13F filings that hedge funds and prominent investors are required to file by the SEC The 13F filings show the funds' and investors' portfolio positions as of March 31st, near the height of the coronavirus market crash.
-"""
+    sender = os.getenv("FROM_EMAIL")
+    receivers = os.getenv("TO_EMAIL")
+
+    msg = EmailMessage()
+    msg['From'] = sender
+    msg['To'] = receivers
+    msg['Subject'] = title
+    msg.set_content(articles)
+
+    with smtplib.SMTP("smtp.gmail.com") as conn:
+        conn.starttls()
+        conn.login(user=sender, password=os.getenv("FROM_EMAIL_PASSWORD"))
+        conn.send_message(msg)
+        print("Email sent")
+
