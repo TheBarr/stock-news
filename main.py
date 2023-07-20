@@ -17,6 +17,7 @@ stock_parameters = {
     "apikey": os.getenv("ALPHA_VANTAGE_KEY"),
 
 }
+
 date_now = dt.datetime.now().date()
 date_yesterday = date_now - dt.timedelta(days=1)
 date_day_before_yesterday = date_now - dt.timedelta(days=2)
